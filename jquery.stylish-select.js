@@ -64,6 +64,7 @@ Dual licensed under the MIT and GPL licenses.
 		currentIndex = -1,
 		keys = [],
 		prevKey = false,
+		lastIndex = 0, 
 		prevented = false,
 		$newLi;
 
@@ -134,7 +135,7 @@ Dual licensed under the MIT and GPL licenses.
 
             //check if a value is selected
             if (currentIndex != -1){
-                navigateList(currentIndex, true);
+                navigateList(currentIndex, false, true);
             } else {
                 //set placeholder text
                 $containerDivText.text(opts.defaultText);
@@ -201,6 +202,11 @@ Dual licensed under the MIT and GPL licenses.
 
                 //show/hide this menu
                 $newUl.toggle();
+                if ($newUl.css('display') == 'block')
+                {
+                	//Store last selected option
+                	lastIndex = currentIndex;
+                }
                 positionFix();
                 //scroll list to selected item
                 $newLi.eq(currentIndex).focus();
@@ -215,7 +221,7 @@ Dual licensed under the MIT and GPL licenses.
 
                 //remove all hilites, then add hilite to selected item
                 prevented = true;
-                navigateList(currentIndex);
+                navigateList(currentIndex,true);
                 $newUl.hide();
                 $containerDiv.css('position','static');//ie
 
@@ -233,7 +239,7 @@ Dual licensed under the MIT and GPL licenses.
 				}
 			);
 
-            function navigateList(currentIndex, init){
+            function navigateList(currentIndex, triggerChange, init){
                 $newLi.removeClass('hiLite')
                 .eq(currentIndex)
                 .addClass('hiLite');
@@ -252,14 +258,16 @@ Dual licensed under the MIT and GPL licenses.
                     return false;
                 }
 
-		try {
-		    $input.val(val)
-		} catch(ex) {
-		    // handle ie6 exception
-		    $input[0].selectedIndex = currentIndex;
-		}
+				try {
+				    $input.val(val)
+				} catch(ex) {
+				    // handle ie6 exception
+				    $input[0].selectedIndex = currentIndex;
+				}
 
-                $input.change();
+				if (triggerChange == true){ 
+                	$input.change();
+				}
                 $containerDivText.text(text);
             }
 
@@ -272,16 +280,16 @@ Dual licensed under the MIT and GPL licenses.
                 }
                 $currentOpt = $targetInput.find(':selected');
 
-                //currentIndex = $targetInput.find('option').index($currentOpt);
                 currentIndex = $targetInput.find('option').index($currentOpt);
 
-                navigateList(currentIndex, true);
+                navigateList(currentIndex, false, true);
 			});
 
             //handle up and down keys
             function keyPress(element) {
                 //when keys are pressed
                 $(element).unbind('keydown.sSelect').bind('keydown.sSelect',function(e){
+                	
                     var keycode = e.which;
 
                     //prevent change function from firing
@@ -309,7 +317,14 @@ Dual licensed under the MIT and GPL licenses.
                             return false;
                             break;
                         case 13:
+                        	$newUl.hide();
+                        	$input.change();
+                            positionHideFix();
+                            return false;
+                            break;
                         case 27:
+                        	//restore previously selected option
+                        	navigateList(lastIndex, false);
                             $newUl.hide();
                             positionHideFix();
                             return false;
@@ -318,16 +333,13 @@ Dual licensed under the MIT and GPL licenses.
 
                     //check for keyboard shortcuts
                     keyPressed = String.fromCharCode(keycode).toLowerCase();
-
                     var currentKeyIndex = keys.indexOf(keyPressed);
-
                     if (typeof currentKeyIndex != 'undefined') { //if key code found in array
                         ++currentIndex;
                         currentIndex = keys.indexOf(keyPressed, currentIndex); //search array from current index
                         if (currentIndex == -1 || currentIndex == null || prevKey != keyPressed) currentIndex = keys.indexOf(keyPressed); //if no entry was found or new key pressed search from start of array
 
-
-                        navigateList(currentIndex);
+                        navigateList(currentIndex, false);
                         //store last key pressed
                         prevKey = keyPressed;
                         return false;
@@ -338,25 +350,25 @@ Dual licensed under the MIT and GPL licenses.
             function incrementList(){
                 if (currentIndex < (newLiLength-1)) {
                     ++currentIndex;
-                    navigateList(currentIndex);
+                    navigateList(currentIndex,false);
                 }
             }
 
             function decrementList(){
                 if (currentIndex > 0) {
                     --currentIndex;
-                    navigateList(currentIndex);
+                    navigateList(currentIndex,false);
                 }
             }
 
             function gotoFirst(){
                 currentIndex = 0;
-                navigateList(currentIndex);
+                navigateList(currentIndex,false);
             }
 
             function gotoLast(){
                 currentIndex = newLiLength-1;
-                navigateList(currentIndex);
+                navigateList(currentIndex,false);
             }
 
             $containerDiv.bind('click.sSelect',function(e){
@@ -375,6 +387,8 @@ Dual licensed under the MIT and GPL licenses.
 
             //hide list on blur
             $(document).bind('click.sSelect',function(){
+            	//restore previously selected option
+            	navigateList(lastIndex, false);
                 $containerDiv.removeClass('newListSelFocus');
                 $newUl.hide();
                 positionHideFix();
